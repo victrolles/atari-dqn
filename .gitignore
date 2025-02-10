@@ -192,6 +192,7 @@ pyrightconfig.json
 .history
 .ionide
 .env-dqn/
+my_env/
 runs/
 videos/
 wandb/
