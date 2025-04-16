@@ -104,7 +104,7 @@ def make_env(env_id, seed, idx, capture_video, run_name):
         env = gym.wrappers.GrayScaleObservation(env)
         env = gym.wrappers.FrameStack(env, 4)
         env.action_space.seed(seed)
-
+        
         return env
     
     return thunk
@@ -197,9 +197,11 @@ if __name__ == "__main__":
         epsilon = linear_schedule(args.start_e, args.end_e, args.exploration_fraction * args.total_timesteps, global_step)
         if random.random() < epsilon:
             actions = np.array([envs.single_action_space.sample() for _ in range(envs.num_envs)])
+            print("random actions:", actions)
         else:
             q_values = q_network(torch.Tensor(obs).to(device))
             actions = torch.argmax(q_values, dim=1).cpu().numpy()
+            print("q_values:", q_values, "actions:", actions)
 
         next_obs, rewards, terminated, truncated, infos = envs.step(actions)
 
@@ -216,6 +218,7 @@ if __name__ == "__main__":
         for idx, d in enumerate(truncated):
             if d:
                 real_next_obs[idx] = infos["final_observation"][idx]
+
         rb.add(obs, real_next_obs, actions, rewards, terminated, infos)
 
         obs = next_obs
@@ -223,6 +226,7 @@ if __name__ == "__main__":
         if global_step > args.learning_starts:
             if global_step % args.train_frequency == 0:
                 data = rb.sample(args.batch_size)
+                print(rb.size())
                 with torch.no_grad():
                     target_max, _ = target_network(data.next_observations).max(dim=1)
                     td_target = data.rewards.flatten() + args.gamma * target_max * (1 - data.dones.flatten())
